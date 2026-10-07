@@ -1,0 +1,918 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>System Verifikasi Jawaban - Operasi Aljabar</title>
+    
+    <!-- Firebase SDK (v10.8.0 - Module) -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+        import { getDatabase, ref, set, onValue, update } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
+
+        // =========================================================================
+        // KONFIGURASI FIREBASE (Ganti dengan konfigurasi dari Firebase Console Anda)
+        // =========================================================================
+        const firebaseConfig = {
+    apiKey: "AIzaSyBZGPSWSIaYohl2AKuJSm7FIbt1hgB0d8U",
+    authDomain: "penjumlahanpenguranganaljabar.firebaseapp.com",
+    projectId: "penjumlahanpenguranganaljabar",
+    storageBucket: "penjumlahanpenguranganaljabar.firebasestorage.app",
+    messagingSenderId: "342237352188",
+    appId: "1:342237352188:web:361bb7068e47b37c8c0779",
+    measurementId: "G-4FJGMNYEKR"
+        };
+
+        // Inisialisasi Firebase
+        const app = initializeApp(firebaseConfig);
+        const db = getDatabase(app);
+
+        // Ekspor fungsi Firebase ke Window Object agar dapat diakses oleh script global
+        window.db = db;
+        window.fbRef = ref;
+        window.fbSet = set;
+        window.fbOnValue = onValue;
+        window.fbUpdate = update;
+    </script>
+
+    <style>
+        :root {
+            --bg-dark: #0b0f19;
+            --card-bg: #151d30;
+            --card-border: #263352;
+            --accent-blue: #38bdf8;
+            --accent-glow: rgba(56, 189, 248, 0.3);
+            --correct-green: #22c55e;
+            --wrong-red: #ef4444;
+            --text-main: #f8fafc;
+            --text-muted: #94a3b8;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+        }
+
+        body {
+            background-color: var(--bg-dark);
+            color: var(--text-main);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 15px;
+        }
+
+        .app-container {
+            width: 100%;
+            max-width: 900px;
+            background: var(--card-bg);
+            border: 1px solid var(--card-border);
+            border-radius: 20px;
+            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.6);
+            overflow: hidden;
+            position: relative;
+        }
+
+        /* Views management */
+        .view {
+            display: none;
+            padding: 25px;
+            animation: fadeIn 0.3s ease-in-out;
+        }
+
+        .view.active {
+            display: block;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(8px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* Typography & Headers */
+        h1, h2, h3 {
+            color: var(--accent-blue);
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+            text-shadow: 0 0 10px var(--accent-glow);
+        }
+
+        .header-box {
+            text-align: center;
+            margin-bottom: 25px;
+            border-bottom: 1px solid var(--card-border);
+            padding-bottom: 15px;
+        }
+
+        .subtitle {
+            font-size: 14px;
+            color: var(--text-muted);
+            margin-top: 5px;
+        }
+
+        /* Form Elements & Buttons */
+        .btn {
+            background: var(--accent-blue);
+            color: #0b0f19;
+            border: none;
+            border-radius: 12px;
+            padding: 12px 20px;
+            font-size: 15px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.2s;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px var(--accent-glow);
+            filter: brightness(1.1);
+        }
+
+        .btn-secondary {
+            background: #334155;
+            color: var(--text-main);
+        }
+
+        .btn-danger {
+            background: var(--wrong-red);
+            color: white;
+        }
+
+        .btn-full {
+            width: 100%;
+        }
+
+        .input-field, select {
+            width: 100%;
+            padding: 12px 16px;
+            background: #0b0f19;
+            border: 2px solid var(--card-border);
+            border-radius: 10px;
+            color: white;
+            font-size: 15px;
+            outline: none;
+            margin-top: 6px;
+            margin-bottom: 15px;
+        }
+
+        .input-field:focus, select:focus {
+            border-color: var(--accent-blue);
+        }
+
+        /* HOST DASHBOARD */
+        .host-grid {
+            display: grid;
+            grid-template-columns: 1fr 2fr;
+            gap: 20px;
+        }
+
+        @media (max-width: 768px) {
+            .host-grid { grid-template-columns: 1fr; }
+        }
+
+        .qr-box {
+            background: #0b0f19;
+            border: 2px dashed var(--accent-blue);
+            border-radius: 16px;
+            padding: 20px;
+            text-align: center;
+        }
+
+        .qr-box img {
+            width: 180px;
+            height: 180px;
+            border-radius: 10px;
+            margin: 10px 0;
+            background: white;
+            padding: 5px;
+        }
+
+        .leaderboard-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 10px;
+        }
+
+        .leaderboard-table th, .leaderboard-table td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid var(--card-border);
+        }
+
+        .leaderboard-table th {
+            color: var(--accent-blue);
+            font-size: 13px;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 8px;
+            background: #1e293b;
+            border-radius: 10px;
+            overflow: hidden;
+            margin-top: 5px;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: var(--accent-blue);
+            width: 0%;
+            transition: width 0.3s;
+        }
+
+        /* STUDENT VIEW - MISSION TABS & NUMBERS GRID */
+        .mission-tabs {
+            display: flex;
+            gap: 8px;
+            overflow-x: auto;
+            padding-bottom: 10px;
+            margin-bottom: 15px;
+        }
+
+        .tab-btn {
+            background: #1e293b;
+            color: var(--text-muted);
+            border: 1px solid var(--card-border);
+            padding: 8px 16px;
+            border-radius: 20px;
+            cursor: pointer;
+            white-space: nowrap;
+            font-size: 13px;
+            font-weight: bold;
+        }
+
+        .tab-btn.active {
+            background: var(--accent-blue);
+            color: #0b0f19;
+            border-color: var(--accent-blue);
+        }
+
+        .numbers-grid {
+            display: grid;
+            grid-template-columns: repeat(6, 1fr);
+            gap: 8px;
+            max-height: 250px;
+            overflow-y: auto;
+            padding: 5px;
+            margin-bottom: 20px;
+            border: 1px solid var(--card-border);
+            border-radius: 12px;
+            background: #0b0f19;
+        }
+
+        .num-btn {
+            background: #1e293b;
+            color: white;
+            border: 1px solid var(--card-border);
+            border-radius: 8px;
+            padding: 12px 0;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.2s;
+            position: relative;
+        }
+
+        .num-btn:hover {
+            border-color: var(--accent-blue);
+        }
+
+        .num-btn.active {
+            background: var(--accent-blue);
+            color: #0b0f19;
+        }
+
+        .num-btn.solved {
+            background: rgba(34, 197, 94, 0.2);
+            color: var(--correct-green);
+            border-color: var(--correct-green);
+            cursor: not-allowed;
+        }
+
+        .num-btn.solved::after {
+            content: "✓";
+            position: absolute;
+            top: 2px;
+            right: 4px;
+            font-size: 10px;
+        }
+
+        /* Notification Banners */
+        .alert-banner {
+            background: rgba(56, 189, 248, 0.15);
+            border: 1px solid var(--accent-blue);
+            color: var(--accent-blue);
+            padding: 12px;
+            border-radius: 10px;
+            margin-bottom: 15px;
+            font-size: 14px;
+            display: none;
+            animation: fadeIn 0.3s;
+        }
+
+        .history-list {
+            margin-top: 15px;
+            max-height: 150px;
+            overflow-y: auto;
+            border: 1px solid var(--card-border);
+            border-radius: 10px;
+            padding: 10px;
+        }
+
+        .history-item {
+            font-size: 13px;
+            padding: 8px;
+            border-bottom: 1px solid var(--card-border);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+    </style>
+</head>
+<body>
+
+<div class="app-container">
+
+    <!-- 1. LANDING / HOST SETUP VIEW -->
+    <div id="view-setup" class="view active">
+        <div class="header-box">
+            <h1>OPERASI ALJABAR</h1>
+            <p class="subtitle">Design By Ms. Evi</p>
+        </div>
+
+        <div style="max-width: 450px; margin: 0 auto;">
+            <h3>Buat Permainan Baru (Host)</h3>
+            <label style="font-size: 13px; color: var(--text-muted); margin-top: 10px; display: block;">Durasi Permainan (Menit):</label>
+            <input type="number" id="game-duration" class="input-field" value="30" min="5" max="120">
+
+            <button class="btn btn-full" onclick="createNewGame()">
+                🚀 Buat Barcode Permainan
+            </button>
+
+            <div style="margin-top: 30px; border-top: 1px solid var(--card-border); padding-top: 20px;">
+                <h3>Memori Permainan Sebelumnya</h3>
+                <div id="history-container" class="history-list">
+                    <!-- Loaded dynamically -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 2. HOST DASHBOARD VIEW -->
+    <div id="view-host" class="view">
+        <div class="header-box" style="display: flex; justify-content: space-between; align-items: center;">
+            <div style="text-align: left;">
+                <h2>HOST MONITORING DASHBOARD</h2>
+                <p class="subtitle" id="host-game-id">GAME ID: -</p>
+            </div>
+            <div>
+                <button class="btn btn-secondary" onclick="sendBroadcastPrompt()">💬 Kirim Pesan</button>
+                <button class="btn btn-danger" onclick="endGameSession()">🛑 Selesai Permainan</button>
+            </div>
+        </div>
+
+        <div class="host-grid">
+            <div class="qr-box">
+                <h4>SCAN UNTUK BERGABUNG</h4>
+                <img id="qr-code-img" src="" alt="QR Code">
+                <p style="font-size: 12px; color: var(--text-muted);">Siswa scan Barcode ini menggunakan HP untuk masuk ke game.</p>
+                <div style="margin-top: 15px; background: #151d30; padding: 10px; border-radius: 8px;">
+                    <span style="font-size: 12px; color: var(--text-muted);">Siswa Terhubung:</span>
+                    <h2 id="host-connected-count" style="color: var(--accent-blue);">0 Kelompok</h2>
+                </div>
+            </div>
+
+            <div>
+                <h3>LEADERBOARD REAL-TIME</h3>
+                <table class="leaderboard-table">
+                    <thead>
+                        <tr>
+                            <th>Kelompok</th>
+                            <th>Skor</th>
+                            <th>Misi Terjawab</th>
+                            <th>Progres (Total 150)</th>
+                        </tr>
+                    </thead>
+                    <tbody id="leaderboard-body">
+                        <!-- Loaded dynamically -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- 3. STUDENT JOIN VIEW (AFTER SCANNING QR) -->
+    <div id="view-student-join" class="view">
+        <div class="header-box">
+            <h1>GABUNG PERMAINAN</h1>
+            <p class="subtitle">Pilih kelompok Anda untuk memulai misi</p>
+        </div>
+
+        <div style="max-width: 400px; margin: 0 auto;">
+            <label style="font-size: 13px; color: var(--text-muted);">Pilih Kelompok:</label>
+            <select id="student-group-select">
+                <option value="Kelompok 1">Kelompok 1</option>
+                <option value="Kelompok 2">Kelompok 2</option>
+                <option value="Kelompok 3">Kelompok 3</option>
+                <option value="Kelompok 4">Kelompok 4</option>
+                <option value="Kelompok 5">Kelompok 5</option>
+                <option value="Kelompok 6">Kelompok 6</option>
+            </select>
+
+            <button class="btn btn-full" onclick="joinGameSession()">
+                🎮 Masuk Permainan
+            </button>
+        </div>
+    </div>
+
+    <!-- 4. STUDENT GAME INTERFACE -->
+    <div id="view-student-game" class="view">
+        <div class="header-box" style="display: flex; justify-content: space-between; align-items: center; padding-bottom: 10px;">
+            <div style="text-align: left;">
+                <h3 id="student-group-label" style="color: var(--accent-blue);">KELOMPOK 1</h3>
+                <span style="font-size: 12px; color: var(--text-muted);">Misi Suku Sejenis</span>
+            </div>
+            <div style="text-align: right;">
+                <span style="font-size: 12px; color: var(--text-muted);">Total Skor:</span>
+                <h2 id="student-score-display" style="color: var(--correct-green);">0</h2>
+            </div>
+        </div>
+
+        <!-- Broadcast Notification Alert -->
+        <div id="student-alert-banner" class="alert-banner"></div>
+
+        <!-- Mission Station Tabs (Misi 1 - 5) -->
+        <label style="font-size: 12px; color: var(--text-muted); display: block; margin-bottom: 5px;">PILIH MEJA MISI:</label>
+        <div class="mission-tabs">
+            <button class="tab-btn active" onclick="selectMission(1, this)">Meja Misi 1</button>
+            <button class="tab-btn" onclick="selectMission(2, this)">Meja Misi 2</button>
+            <button class="tab-btn" onclick="selectMission(3, this)">Meja Misi 3</button>
+            <button class="tab-btn" onclick="selectMission(4, this)">Meja Misi 4</button>
+            <button class="tab-btn" onclick="selectMission(5, this)">Meja Misi 5</button>
+        </div>
+
+        <!-- Question Numbers Grid (1 - 30) -->
+        <label style="font-size: 12px; color: var(--text-muted); display: block; margin-bottom: 5px;">PILIH NOMOR SOAL (30 SOAL PER MISI):</label>
+        <div id="numbers-grid" class="numbers-grid">
+            <!-- 1 to 30 populated dynamically -->
+        </div>
+
+        <!-- Answer Input Section -->
+        <div style="background: #0b0f19; padding: 15px; border-radius: 12px; border: 1px solid var(--card-border);">
+            <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
+                <span id="selected-question-label" style="font-weight: bold; color: var(--accent-blue);">Pilih Nomor Soal</span>
+                <span id="points-badge" style="font-size: 12px; color: var(--text-muted);">+10 Poin</span>
+            </div>
+            
+            <input type="text" id="student-answer-input" class="input-field" placeholder="Ketik jawaban aljabar (contoh: 3x+2y)" style="margin-bottom: 10px;" disabled>
+            <button id="btn-submit-answer" class="btn btn-full" onclick="submitAnswer()" disabled>SUBMIT JAWABAN</button>
+
+            <div id="feedback-message" style="margin-top: 10px; font-weight: bold; text-align: center; display: none;"></div>
+        </div>
+    </div>
+
+    <!-- 5. FINAL RECAP / RESULT VIEW -->
+    <div id="view-final-recap" class="view">
+        <div class="header-box">
+            <h1>🏆 REKAPITULASI HASIL AKHIR</h1>
+            <p class="subtitle">Permainan Telah Selesai!</p>
+        </div>
+
+        <table class="leaderboard-table" style="margin-bottom: 25px;">
+            <thead>
+                <tr>
+                    <th>Peringkat</th>
+                    <th>Kelompok</th>
+                    <th>Skor Akhir</th>
+                    <th>Soal Benar</th>
+                </tr>
+            </thead>
+            <tbody id="recap-table-body">
+                <!-- Dynamically loaded -->
+            </tbody>
+        </table>
+
+        <button class="btn btn-full btn-secondary" onclick="showView('view-setup')">
+            🏠 Kembali ke Halaman Utama
+        </button>
+    </div>
+
+</div>
+
+<script>
+    // Global Constants definition to fix ReferenceError issues
+    const TOTAL_MISSIONS = 5;
+    const QUESTIONS_PER_MISSION = 30;
+
+    /* ==========================================================================
+       KUNCI JAWABAN MANUAL (ADAPTOX)
+       ========================================================================== */
+    const keyAnswers = {
+        // MEJA MISI 1: Penjumlahan Bentuk Aljabar (30 Soal)
+        1: {
+            1: "5x", 2: "7a+7", 3: "8x+10", 4: "8y", 5: "11p+7", 6: "10m", 7: "7a+5", 8: "12b+3", 9: "6x^2+8", 10: "9y^2+5",
+            11: "7x+7y", 12: "8a+8b", 13: "7x^2+7x", 14: "10p+7q", 15: "6m+5n+12", 16: "9x^2+6x+8", 17: "9a+7b+3", 18: "8xy+6x", 19: "9a^2+8a+6", 20: "9p^2+5q+3",
+            21: "7x^2+8x+11", 22: "12a^2+6a+5", 23: "10x^2+10xy+3", 24: "9a^2b+9ab+6", 25: "7x^2+7x+8y", 26: "12m^2+10m+4", 27: "7a^2+9a+7b+3", 28: "10x^2+5xy+9x+9", 29: "5a^2b+8ab+10a", 30: "9x^2+8xy+9x+10"
+        },
+        // MEJA MISI 2: Pengurangan Bentuk Aljabar (30 Soal)
+        2: {
+            1: "5x", 2: "5a+5", 3: "-x-13", 4: "7x+5", 5: "5y+5", 6: "7m+5", 7: "7a+7", 8: "8b+5", 9: "7x^2+3", 10: "7y^2+5",
+            11: "5x+5y", 12: "7a+3b", 13: "5x^2+4x", 14: "7p+4q", 15: "5m+4n+6", 16: "7x^2+4x+3", 17: "7a+4b+3", 18: "5xy+4x", 19: "7a^b+5a+3", 20: "7p^2+5q+3",
+            21: "6x^2+5x+3", 22: "7a^2+3a+5", 23: "6x^2+4xy+4", 24: "7a^2b+5ab+3", 25: "5x^2+4x+6y", 26: "9m^2+5m+5", 27: "7a^2+5a+5b+2", 28: "9x^2+5xy+5x+5", 29: "8a^2b+5ab+6a", 30: "9x^2+5xy+6x+5"
+        },
+        // MEJA MISI 3: Menyederhanakan Bentuk Aljabar (30 Soal)
+        3: {
+            1: "5x", 2: "6a", 3: "3y", 4: "6p", 5: "7m", 6: "4b", 7: "7x^2", 8: "7z^2", 9: "5xy", 10: "9n",
+            11: "7x+3y", 12: "5a+7b", 13: "3x^2+7x", 14: "13p-q", 15: "4m+7n", 16: "12x^2+3x", 17: "6a+3b", 18: "5xy+8x", 19: "5a^2+4a", 20: "15p^2-3q",
+            21: "3x+7y-7", 22: "5a^2+3a+6", 23: "4x^2+6xy-5", 24: "5a^2b+3ab+3a", 25: "2x^2+8x-3y", 26: "19m^2-4m-5", 27: "7a^2+15a+2b", 28: "11x+7y+10", 29: "benar", 30: "19a^2b-2ab+2a^2+6"
+        },
+        // MEJA MISI 4: Real Life Algebra (30 Soal)
+        4: {
+            1: "8x", 2: "9a", 3: "6x", 4: "5y", 5: "7p", 6: "14x", 7: "7a", 8: "10m", 9: "8x", 10: "12b",
+            11: "12x", 12: "11a", 13: "16x+5", 14: "9a+8", 15: "11x", 16: "11y+5", 17: "11p+7", 18: "12x+7", 19: "13a+7", 20: "17m+7",
+            21: "13x+5", 22: "16a+7", 23: "9x+5", 24: "13x+6", 25: "10x+4", 26: "salah", 27: "salah", 28: "12x+5", 29: "27x+12", 30: "13x+4"
+        },
+        // MEJA MISI 5: Menjelaskan & Membuktikan Jawaban (30 Soal)
+        5: {
+            1: "17", 2: "15", 3: "13", 4: "20", 5: "17", 6: "18", 7: "25", 8: "24", 9: "13", 10: "32",
+            11: "27", 12: "49", 13: "90", 14: "29", 15: "21", 16: "22", 17: "42", 18: "24", 19: "84", 20: "201",
+            21: "93", 22: "113", 23: "160", 24: "91", 25: "27", 26: "100", 27: "100", 28: "90", 29: "100", 30: "164"
+        }
+    };
+
+    let currentSession = {
+        id: null,
+        duration: 30,
+        status: "active",
+        alertMessage: "",
+        groups: {
+            "Kelompok 1": { score: 0, solved: {} },
+            "Kelompok 2": { score: 0, solved: {} },
+            "Kelompok 3": { score: 0, solved: {} },
+            "Kelompok 4": { score: 0, solved: {} },
+            "Kelompok 5": { score: 0, solved: {} },
+            "Kelompok 6": { score: 0, solved: {} }
+        }
+    };
+
+    let studentState = {
+        group: null,
+        activeMission: 1,
+        activeQuestion: null
+    };
+
+    window.addEventListener('DOMContentLoaded', () => {
+        loadGameHistory();
+        checkUrlParams();
+    });
+
+    function showView(viewId) {
+        document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+        document.getElementById(viewId).classList.add('active');
+    }
+
+    function checkUrlParams() {
+        const urlParams = new URLSearchParams(window.location.search);
+        const gameId = urlParams.get('game');
+        if (gameId) {
+            currentSession.id = gameId;
+            initFirebaseListener(gameId);
+            showView('view-student-join');
+        }
+    }
+
+    // =========================================================================
+    // FIREBASE REAL-TIME SYNC ENGINE
+    // =========================================================================
+    function initFirebaseListener(gameId) {
+        if (!window.db) return;
+        const gameRef = window.fbRef(window.db, `games/${gameId}`);
+        
+        window.fbOnValue(gameRef, (snapshot) => {
+            const data = snapshot.val();
+            if (data) {
+                currentSession = data;
+                if (!currentSession.groups) {
+                    currentSession.groups = {
+                        "Kelompok 1": { score: 0, solved: {} },
+                        "Kelompok 2": { score: 0, solved: {} },
+                        "Kelompok 3": { score: 0, solved: {} },
+                        "Kelompok 4": { score: 0, solved: {} },
+                        "Kelompok 5": { score: 0, solved: {} },
+                        "Kelompok 6": { score: 0, solved: {} }
+                    };
+                }
+
+                // Perbarui antarmuka Host jika sedang di tampilan host
+                updateHostDashboard();
+
+                // Perbarui antarmuka Siswa jika sedang dalam permainan
+                if (studentState.group) {
+                    updateStudentScoreDisplay();
+                    renderNumbersGrid();
+
+                    // Cek jika ada Broadcast Pesan
+                    const banner = document.getElementById('student-alert-banner');
+                    if (banner && currentSession.alertMessage) {
+                        banner.innerText = `📢 PESAN HOST: ${currentSession.alertMessage}`;
+                        banner.style.display = 'block';
+                    }
+
+                    // Cek jika permainan telah diakhiri oleh Host
+                    if (currentSession.status === "ended") {
+                        if (banner) {
+                            banner.innerText = "📢 PERMAINAN TELAH DIAKHIRI OLEH HOST";
+                            banner.style.display = 'block';
+                        }
+                        renderRecapTable();
+                        showView('view-final-recap');
+                    }
+                }
+            }
+        });
+    }
+
+    function syncSessionToFirebase() {
+        if (!window.db || !currentSession.id) return;
+        const gameRef = window.fbRef(window.db, `games/${currentSession.id}`);
+        window.fbSet(gameRef, currentSession);
+    }
+
+    function createNewGame() {
+        const duration = parseInt(document.getElementById('game-duration').value) || 30;
+        const gameId = 'GAME-' + Math.floor(1000 + Math.random() * 9000);
+        
+        currentSession.id = gameId;
+        currentSession.duration = duration;
+        currentSession.status = "active";
+        currentSession.alertMessage = "";
+
+        // Push Sesi Baru ke Firebase
+        syncSessionToFirebase();
+        initFirebaseListener(gameId);
+
+        // Generate QR Code yang mengarah ke URL halaman ini + Parameter Game ID
+        const studentUrl = `${window.location.origin}${window.location.pathname}?game=${gameId}`;
+        const qrApi = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(studentUrl)}`;
+        
+        document.getElementById('qr-code-img').src = qrApi;
+        document.getElementById('host-game-id').innerText = `GAME ID: ${gameId} (${duration} Menit)`;
+
+        updateHostDashboard();
+        showView('view-host');
+        saveGameToHistory();
+    }
+
+    function updateHostDashboard() {
+        const tbody = document.getElementById('leaderboard-body');
+        if (!tbody) return;
+        tbody.innerHTML = '';
+
+        let connectedCount = 0;
+        let totalQuestions = TOTAL_MISSIONS * QUESTIONS_PER_MISSION; // 150
+
+        Object.keys(currentSession.groups || {}).forEach(groupName => {
+            const grp = currentSession.groups[groupName] || { score: 0, solved: {} };
+            const solvedCount = Object.keys(grp.solved || {}).length;
+            if (solvedCount > 0) connectedCount++;
+
+            const pct = Math.round((solvedCount / totalQuestions) * 100);
+
+            const row = document.createElement('tr');
+            row.innerHTML = `
+                <td><strong>${groupName}</strong></td>
+                <td><span style="color: var(--correct-green); font-weight: bold;">${grp.score || 0}</span></td>
+                <td>${solvedCount} Soal</td>
+                <td>
+                    <div style="font-size: 11px;">${pct}%</div>
+                    <div class="progress-bar"><div class="progress-fill" style="width: ${pct}%"></div></div>
+                </td>
+            `;
+            tbody.appendChild(row);
+        });
+
+        const connectedEl = document.getElementById('host-connected-count');
+        if (connectedEl) connectedEl.innerText = `${connectedCount} Kelompok`;
+    }
+
+    function sendBroadcastPrompt() {
+        const msg = prompt("Masukkan pesan peringatan untuk semua siswa (misal: 'Waktu tersisa 5 menit!'):");
+        if (msg) {
+            currentSession.alertMessage = msg;
+            syncSessionToFirebase();
+        }
+    }
+
+    function endGameSession() {
+        if (confirm("Apakah Anda yakin ingin mengakhiri permainan?")) {
+            currentSession.status = "ended";
+            syncSessionToFirebase();
+            saveGameToHistory();
+            renderRecapTable();
+            showView('view-final-recap');
+        }
+    }
+
+    function joinGameSession() {
+        studentState.group = document.getElementById('student-group-select').value;
+        document.getElementById('student-group-label').innerText = studentState.group.toUpperCase();
+
+        renderNumbersGrid();
+        updateStudentScoreDisplay();
+        showView('view-student-game');
+    }
+
+    function selectMission(missionNum, element) {
+        studentState.activeMission = missionNum;
+        studentState.activeQuestion = null;
+
+        document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+        element.classList.add('active');
+
+        // Reset Question Input Box
+        document.getElementById('selected-question-label').innerText = "Pilih Nomor Soal";
+        document.getElementById('student-answer-input').value = "";
+        document.getElementById('student-answer-input').disabled = true;
+        document.getElementById('btn-submit-answer').disabled = true;
+
+        renderNumbersGrid();
+    }
+
+    function renderNumbersGrid() {
+        const grid = document.getElementById('numbers-grid');
+        if (!grid) return;
+        grid.innerHTML = '';
+
+        const groupData = (currentSession.groups && currentSession.groups[studentState.group]) 
+            ? currentSession.groups[studentState.group] 
+            : { solved: {} };
+
+        for (let q = 1; q <= QUESTIONS_PER_MISSION; q++) {
+            const btn = document.createElement('button');
+            btn.className = 'num-btn';
+            btn.innerText = q;
+
+            const questionKey = `M${studentState.activeMission}_Q${q}`;
+
+            // Check if already solved
+            if (groupData.solved && groupData.solved[questionKey]) {
+                btn.classList.add('solved');
+            } else {
+                btn.onclick = () => selectQuestionNumber(q, btn);
+            }
+
+            if (studentState.activeQuestion === q) {
+                btn.classList.add('active');
+            }
+
+            grid.appendChild(btn);
+        }
+    }
+
+    function selectQuestionNumber(qNum, element) {
+        studentState.activeQuestion = qNum;
+
+        document.querySelectorAll('.num-btn').forEach(b => {
+            if (!b.classList.contains('solved')) b.classList.remove('active');
+        });
+        element.classList.add('active');
+
+        document.getElementById('selected-question-label').innerText = `Meja ${studentState.activeMission} - Soal No. ${qNum}`;
+        document.getElementById('student-answer-input').disabled = false;
+        document.getElementById('btn-submit-answer').disabled = false;
+        document.getElementById('student-answer-input').focus();
+    }
+
+    function submitAnswer() {
+        const inputEl = document.getElementById('student-answer-input');
+        const feedbackEl = document.getElementById('feedback-message');
+        const userAns = inputEl.value.trim().toLowerCase().replace(/\s+/g, '');
+
+        if (!studentState.activeQuestion || !userAns) return;
+
+        const correctAns = (keyAnswers[studentState.activeMission][studentState.activeQuestion] || "").toLowerCase();
+
+        feedbackEl.style.display = 'block';
+
+        if (userAns === correctAns) {
+            feedbackEl.style.color = 'var(--correct-green)';
+            feedbackEl.innerText = "🟢 CORRECT! Jawaban Terverifikasi.";
+
+            const questionKey = `M${studentState.activeMission}_Q${studentState.activeQuestion}`;
+            
+            if (!currentSession.groups[studentState.group]) {
+                currentSession.groups[studentState.group] = { score: 0, solved: {} };
+            }
+            if (!currentSession.groups[studentState.group].solved) {
+                currentSession.groups[studentState.group].solved = {};
+            }
+
+            currentSession.groups[studentState.group].solved[questionKey] = true;
+            currentSession.groups[studentState.group].score = (currentSession.groups[studentState.group].score || 0) + 10;
+
+            // Sinkronkan pembaruan ke Firebase
+            syncSessionToFirebase();
+
+            updateStudentScoreDisplay();
+            renderNumbersGrid();
+
+            // Reset input
+            inputEl.value = "";
+            inputEl.disabled = true;
+            document.getElementById('btn-submit-answer').disabled = true;
+        } else {
+            feedbackEl.style.color = 'var(--wrong-red)';
+            feedbackEl.innerText = "🔴 WRONG! Jawaban belum tepat, coba lagi!";
+        }
+    }
+
+    function updateStudentScoreDisplay() {
+        const score = currentSession.groups[studentState.group]?.score || 0;
+        const scoreEl = document.getElementById('student-score-display');
+        if (scoreEl) scoreEl.innerText = score;
+    }
+
+    function saveGameToHistory() {
+        if (!currentSession.id) return;
+        let history = JSON.parse(localStorage.getItem('adaptox_history') || '[]');
+        
+        const existingIdx = history.findIndex(h => h.id === currentSession.id);
+        if (existingIdx >= 0) {
+            history[existingIdx] = currentSession;
+        } else {
+            history.unshift(currentSession);
+        }
+
+        localStorage.setItem('adaptox_history', JSON.stringify(history));
+        loadGameHistory();
+    }
+
+    function loadGameHistory() {
+        const container = document.getElementById('history-container');
+        if (!container) return;
+        const history = JSON.parse(localStorage.getItem('adaptox_history') || '[]');
+
+        if (history.length === 0) {
+            container.innerHTML = `<div style="font-size:12px; color:var(--text-muted); text-align:center;">Belum ada memori permainan.</div>`;
+            return;
+        }
+
+        container.innerHTML = '';
+        history.forEach(game => {
+            const div = document.createElement('div');
+            div.className = 'history-item';
+            div.innerHTML = `
+                <div>
+                    <strong>${game.id}</strong> (${game.duration} Menit)
+                </div>
+                <button class="btn btn-secondary" style="padding: 4px 8px; font-size: 11px;" onclick="loadSavedGame('${game.id}')">Buka</button>
+            `;
+            container.appendChild(div);
+        });
+    }
+
+    function loadSavedGame(gameId) {
+        const history = JSON.parse(localStorage.getItem('adaptox_history') || '[]');
+        const game = history.find(g => g.id === gameId);
+        if (game) {
+            currentSession = game;
+            initFirebaseListener(gameId);
+            renderRecapTable();
+            showView('view-final-recap');
+        }
+    }
+
+    function renderRecapTable() {
+        const tbody = document.getElementById('recap-table-body');
+        if (!tbody) return;
+        tbody.innerHTML = '';
+
+        const sortedGroups = Object.keys(currentSession.groups || {})
+            .map(name => ({ name, ...currentSession.groups[name] }))
+            .sort((a, b) => (b.score || 0) - (a.score || 0));
+
+        sortedGroups.forEach((grp, idx) => {
+            const solvedCount = Object.keys(grp.solved || {}).length;
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+                <td><strong>#${idx + 1}</strong></td>
+                <td>${grp.name}</td>
+                <td><strong style="color: var(--correct-green);">${grp.score || 0}</strong></td>
+                <td>${solvedCount} / 150 Soal</td>
+            `;
+            tbody.appendChild(tr);
+        });
+    }
+</script>
+
+</body>
+</html>
