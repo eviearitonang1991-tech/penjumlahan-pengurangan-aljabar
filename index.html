@@ -466,19 +466,65 @@
             <!-- 1 to 30 populated dynamically -->
         </div>
 
-        <!-- Answer Input Section -->
-        <div style="background: #0b0f19; padding: 15px; border-radius: 12px; border: 1px solid var(--card-border);">
-            <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
-                <span id="selected-question-label" style="font-weight: bold; color: var(--accent-blue);">Pilih Nomor Soal</span>
-                <span id="points-badge" style="font-size: 12px; color: var(--text-muted);">+10 Poin</span>
-            </div>
-            
-            <input type="text" id="student-answer-input" class="input-field" placeholder="Ketik jawaban aljabar (contoh: 3x+2y)" style="margin-bottom: 10px;" disabled>
-            <button id="btn-submit-answer" class="btn btn-full" onclick="submitAnswer()" disabled>SUBMIT JAWABAN</button>
+       let selectedQuestionNumber = null;
+let playerScore = 0;
 
-            <div id="feedback-message" style="margin-top: 10px; font-weight: bold; text-align: center; display: none;"></div>
-        </div>
-    </div>
+// 1. Fungsi Menghitung Poin Berdasarkan Nomor Soal
+function getQuestionPoints(questionNumber) {
+    const qNum = parseInt(questionNumber);
+    if (qNum >= 1 && qNum <= 10) return 5;
+    if (qNum >= 11 && qNum <= 20) return 10;
+    if (qNum >= 21 && qNum <= 30) return 15;
+    return 0;
+}
+
+// 2. Fungsi Saat Nomor Soal Dipilih
+function selectQuestion(questionNumber) {
+    selectedQuestionNumber = questionNumber;
+    const currentPoints = getQuestionPoints(questionNumber);
+
+    // Update label & badge poin di UI
+    document.getElementById("selected-question-label").innerText = "Soal Nomor " + questionNumber;
+    document.getElementById("points-badge").innerText = "+" + currentPoints + " Poin";
+
+    // Reset status elemen input
+    const input = document.getElementById("student-answer-input");
+    const btnSubmit = document.getElementById("btn-submit-answer");
+    const feedback = document.getElementById("feedback-message");
+
+    if (input) {
+        input.value = "";
+        input.disabled = false;
+    }
+    if (btnSubmit) btnSubmit.disabled = false;
+    if (feedback) feedback.style.display = "none";
+}
+
+// 3. Fungsi Eksekusi Submit Jawaban
+function submitAnswer() {
+    if (!selectedQuestionNumber) return;
+
+    const userInput = document.getElementById("student-answer-input").value.trim().toLowerCase();
+    const correctAnswer = keyAnswers[selectedQuestionNumber].toLowerCase();
+    const pointsToEarn = getQuestionPoints(selectedQuestionNumber);
+    const feedback = document.getElementById("feedback-message");
+
+    if (userInput === correctAnswer) {
+        playerScore += pointsToEarn;
+        
+        // Update skor total (jika elemen tersedia di UI)
+        const totalScoreElem = document.getElementById("total-score");
+        if (totalScoreElem) totalScoreElem.innerText = "Skor: " + playerScore;
+
+        feedback.innerText = "Jawaban Benar! +" + pointsToEarn + " Poin";
+        feedback.style.color = "#4CAF50";
+    } else {
+        feedback.innerText = "Jawaban Salah! Coba lagi.";
+        feedback.style.color = "#FF5252";
+    }
+
+    feedback.style.display = "block";
+}
 
     <!-- 5. FINAL RECAP / RESULT VIEW -->
     <div id="view-final-recap" class="view">
